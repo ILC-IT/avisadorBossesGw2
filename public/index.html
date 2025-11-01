@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>GW2 WB Notifier</title>
+    <link rel="icon" href="/favicon.png" type="image/png" />
+    <link rel="stylesheet" href="/css/estilos.css" />
+</head>
+
+<body>
+    <h2>GW2 Select World Bosses and timers</h2>
+    <form id="form-jefes">
+        <div class="button-container">
+            <label for="minutosAviso">⏰ Notify before: </label>
+            <span style="display: flex; align-items: center; gap: 4px;">
+                <input type="number" id="minutosAviso" min="1" max="59" value="10" />
+                <span>min</span>
+            </span>
+            <button type="submit">💾 Save selection</button>
+            <button type="button" id="btn-borrar">🧹 Clear current selection</button>
+            <button type="button" id="btn-borrar-total">🗑️ Clear all</button>
+        </div>
+        <div class="jefe-grid" id="checkbox-container">Loading bosses...</div><br />
+    </form>
+
+    <script>
+        const checkboxContainer = document.getElementById('checkbox-container');
+        const form = document.getElementById('form-jefes');
+        const minutosAvisoInput = document.getElementById('minutosAviso');
+        let checkboxes = [];
+        let seleccionGuardada = {};
+
+        async function cargarConfiguracion() {
+            try {
+                const res = await fetch('/api/config');
+                const config = await res.json();
+                seleccionGuardada = config.seleccion || {};
+                minutosAvisoInput.value = config.minutosAviso ?? 10;
+                // Sincronizar localStorage con backend para evitar discrepancias
+                localStorage.setItem('seleccionBossesHoras', JSON.stringify(seleccionGuardada));
+                localStorage.setItem('minutosAviso', minutosAvisoInput.value);
+            } catch (error) {
+                console.warn('No se pudo cargar la configuracion del servidor.', error);
+                seleccionGuardada = {};
+                minutosAvisoInput.value = 10;
+            }
+        }
+
+        function guardarSeleccion() {
+            const seleccion = {};
+
+            document.querySelectorAll('.jefe-container').forEach(div => {
+                const jefe = div.dataset.jefe;
+                const horasSeleccionadas = [...div.querySelectorAll('input[type="checkbox"]:checked')].map(cb => cb.value);
+                if (horasSeleccionadas.length > 0) {
+                    seleccion[jefe] = horasSeleccionadas;
+                }
+            });
+
+            // Validacion de minutosAviso
+            let minutosAviso = parseInt(minutosAvisoInput.value, 10);
+            if (isNaN(minutosAviso) || minutosAviso < 1 || minutosAviso > 59) {
+                minutosAviso = 10; // valor por defecto
+                minutosAvisoInput.value = minutosAviso;
+            }
+
+            // Guardar en localStorage
+            localStorage.setItem('minutosAviso', minutosAviso);
+            localStorage.setItem('seleccionBossesHoras', JSON.stringify(seleccion));
+
+            // Enviar al servidor
+            fetch('/guardar-config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    seleccion,
+                    minutosAviso
+                })
+            });
+        }
+
+        async function cargarJefes() {
+            try {
+                const res = await fetch('/api/jefes');
+                const jefes = await res.json();
+                checkboxContainer.innerHTML = '';
+
+                jefes.forEach(jefe => {
+                    const div = document.createElement('div');
+                    div.classList.add('jefe-container');
+                    div.dataset.jefe = jefe.nombre;
+
+                    const titulo = document.createElement('strong');
+                    titulo.textContent = jefe.nombre;
+                    div.appendChild(titulo);
+                    div.appendChild(document.createElement('br'));
+
+                    jefe.horarios.forEach(hora => {
+                        const id = `${jefe.nombre}-${hora}`;
+                        const label = document.createElement('label');
+                        label.htmlFor = id;
+
+                        const input = document.createElement('input');
+                        input.type = 'checkbox';
+                        input.id = id;
+                        input.name = `horas-${jefe.nombre}`;
+                        input.value = hora;
+
+                        if (seleccionGuardada[jefe.nombre]?.includes(hora)) {
+                            input.checked = true;
+                        }
+
+                        input.addEventListener('change', guardarSeleccion); // con esto ya autoguarda
+                        label.appendChild(input);
+                        label.append(` ${hora}`);
+                        div.appendChild(label);
+                        div.appendChild(document.createElement('br'));
+                        checkboxes.push(input);
+                    });
+
+                    checkboxContainer.appendChild(div);
+                    checkboxContainer.appendChild(document.createElement('hr'));
+                });
+            } catch (error) {
+                checkboxContainer.innerHTML = '❌ Error loading bosses.';
+                console.error(error);
+            }
+        }
+
+        document.getElementById('btn-borrar').addEventListener('click', () => {
+            checkboxes.forEach(cb => cb.checked = false);
+            guardarSeleccion();
+            alert("✅ Current selection has been cleared.");
+        });
+
+        document.getElementById('btn-borrar-total').addEventListener('click', () => {
+            checkboxes.forEach(cb => cb.checked = false);
+            localStorage.removeItem('seleccionBossesHoras');
+            localStorage.removeItem('minutosAviso');
+            minutosAvisoInput.value = 10; // valor por defecto
+            fetch('/guardar-config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    seleccion: {},
+                    minutosAviso: 10
+                })
+            });
+            alert("✅ ALL selections have been cleared.");
+        });
+
+        form.addEventListener('submit', e => {
+            e.preventDefault();
+            guardarSeleccion();
+            alert("✅ Selection saved.");
+        });
+
+        async function iniciarApp() {
+            await cargarConfiguracion();
+            await cargarJefes();
+        }
+
+        iniciarApp();
+        
+    </script>
+</body>
+
+</html>
