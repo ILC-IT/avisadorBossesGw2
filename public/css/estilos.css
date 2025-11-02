@@ -35,6 +35,16 @@ label {
     font-size: 18px;
 }
 
+label.destacado {
+    background-color: gold;
+    color: black;
+    border-radius: 4px;
+    padding: 2px 4px;
+    font-weight: bold;
+    box-shadow: 0 0 6px gold;
+    transition: 0.3s ease;
+}
+
 button {
     font-size: 18px;
     margin: 10px;

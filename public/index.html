@@ -20,6 +20,7 @@
             <button type="submit">💾 Save selection</button>
             <button type="button" id="btn-borrar">🧹 Clear current selection</button>
             <button type="button" id="btn-borrar-total">🗑️ Clear all</button>
+            <button type="button" id="btn-destacar">🌟 Highlight upcoming bosses</button>
         </div>
         <div class="jefe-grid" id="checkbox-container">Loading bosses...</div><br />
     </form>
@@ -150,6 +151,74 @@
             alert("✅ ALL selections have been cleared.");
         });
 
+        let modoDestacadoActivo = false; // para saber si el modo highlight esta activo
+        const margenMin = 0; // minutos antes (si es negativo) de la hora actual
+        const margenMax = 30; // minutos despues de la hora actual
+
+        document.getElementById('btn-destacar').addEventListener('click', destacarHorasProximas);
+
+        function actualizarTextoBoton() {
+            const boton = document.getElementById('btn-destacar');
+            if (modoDestacadoActivo) {
+                boton.textContent = '❌ Remove highlights';
+            } else {
+                boton.textContent = `🌟 Highlight upcoming bosses. Now(${margenMin}min, ${margenMax}min)`;
+            }
+        }
+
+        function destacarHorasProximas() {
+            const boton = document.getElementById('btn-destacar');
+
+            // Si ya esta activo, quitar resaltado
+            if (modoDestacadoActivo) {
+                document.querySelectorAll('label.destacado')
+                    .forEach(lbl => lbl.classList.remove('destacado'));
+                modoDestacadoActivo = false;
+                actualizarTextoBoton();
+                return;
+            }
+
+            // Activar modo resaltado
+            modoDestacadoActivo = true;
+            actualizarTextoBoton();
+
+            const ahora = new Date();
+            const minutosActuales = ahora.getHours() * 60 + ahora.getMinutes();
+
+            // Quitar resaltados anteriores por si acaso
+            document.querySelectorAll('label.destacado')
+                .forEach(lbl => lbl.classList.remove('destacado'));
+
+            // Detectar si el margenMin es negativo (modo bidireccional)
+            const modoBidireccional = margenMin < 0;
+
+            // Revisar todas las horas (labels)
+            document.querySelectorAll('.jefe-container label').forEach(label => {
+                const hora = label.textContent.trim();
+                const match = hora.match(/^(\d{2}):(\d{2})$/);
+
+                if (!match) return; // evitar que falle si el label tiene otro texto
+
+                const [_, h, m] = match.map(Number);
+                const minutosEvento = h * 60 + m;
+
+                let diff = minutosEvento - minutosActuales;
+
+                if (modoBidireccional) {
+                    // Permite margenes negativos y positivos (±12h)
+                    if (diff > 720) diff -= 1440;
+                    if (diff < -720) diff += 1440;
+                } else {
+                    // Solo futuros (ajuste simple a 0–24h)
+                    if (diff < 0) diff += 1440; // si ya paso, cuenta como del dia siguiente
+                }
+
+                if (diff >= margenMin && diff <= margenMax) {
+                    label.classList.add('destacado');
+                }
+            });
+        }
+
         form.addEventListener('submit', e => {
             e.preventDefault();
             guardarSeleccion();
@@ -161,6 +230,7 @@
             await cargarJefes();
         }
 
+        actualizarTextoBoton();
         iniciarApp();
         
     </script>
