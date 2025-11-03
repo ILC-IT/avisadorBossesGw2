@@ -178,8 +178,8 @@
         });
 
         let modoDestacadoActivo = false; // para saber si el modo highlight esta activo
-        const margenMin = 0; // minutos antes (si es negativo) de la hora actual
-        const margenMax = 30; // minutos despues de la hora actual
+        const margenMin = -5; // minutos antes (si es negativo) de la hora actual
+        const margenMax = 30; // minutos despues de la hora actual, no puede ser menor al margen minimo
 
         document.getElementById('btn-destacar').addEventListener('click', destacarHorasProximas);
 
@@ -189,10 +189,26 @@
                 boton.textContent = '❌ Remove highlights';
             } else {
                 boton.textContent = `🌟 Manual highlight upcoming bosses`;
-                boton.title = `Range: from now until ${margenMax} min`;
+                const ahora = new Date();
+                // Crear las fechas de inicio y fin segun los rangos
+                const inicio = new Date(ahora.getTime() + margenMin * 60 * 1000);
+                const fin = new Date(ahora.getTime() + margenMax * 60 * 1000);
+                let textoRango;
+                if (margenMin < 0) {
+                    textoRango = `Range: from ${formatearHora(inicio)} (${margenMin} min before now) to ${formatearHora(fin)} (+${margenMax} min after now)`;
+                } else {
+                    textoRango = `Range: from ${formatearHora(inicio)} (now +${margenMin} min) to ${formatearHora(fin)} (now +${margenMax} min)`;
+                }
+                boton.title = textoRango;
             }
         }
 
+        // Formatear la hora (HH:MM)
+        function formatearHora(fecha) {
+            return fecha.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+        // Para destacar horas
         function destacarHorasProximas() {
             const boton = document.getElementById('btn-destacar');
 

@@ -92,9 +92,14 @@ const eventosOriginales = [
     puntoRuta: "[&BCoPAAA=]"
   },
   {
-    nombre: "Shipwreck Strand",
+    nombre: "Hammerhart Rumble!",
     horarios: ["00:40", "02:40", "04:40", "06:40", "08:40", "10:40", "12:40", "14:40", "16:40", "18:40", "20:40", "22:40"],
     puntoRuta: "[&BJEPAAA=]"
+  },
+  {
+    nombre: "Secrets of the Weald",
+    horarios: ["01:40", "03:40", "05:40", "07:40", "09:40", "11:40", "13:40", "15:40", "17:40", "19:40", "21:40", "23:40"],
+    puntoRuta: "[&BJ4PAAA=]"
   }
 ];
 
