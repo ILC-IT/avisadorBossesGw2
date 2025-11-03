@@ -120,6 +120,32 @@
                         checkboxes.push(input);
                     });
 
+                    // button for copy WP
+                    const btnCopiar = document.createElement('button');
+                    btnCopiar.type = 'button';
+                    btnCopiar.style.cursor = 'pointer';
+                    btnCopiar.textContent = '📋 Copy WP';
+                    btnCopiar.addEventListener('click', () => {
+                        // Solo copiar las horas seleccionadas
+                        //const horasSeleccionadas = [...div.querySelectorAll('input[type="checkbox"]:checked')]
+                            //.map(cb => cb.value)
+                            //.join(', ') || 'Sin selección';
+                        
+                        const texto = `${jefe.nombre}: ${jefe.puntoRuta || 'N/A'}`;
+
+                        navigator.clipboard.writeText(texto)
+                            .then(() => {
+                                btnCopiar.textContent = '✅ Copied!';
+                                setTimeout(() => btnCopiar.textContent = '📋 Copy WP', 1500);
+                            })
+                            .catch(err => {
+                                console.error('Copy error:', err);
+                                alert('❌ Can not copy to clipboard.');
+                            });
+                    });
+
+                    div.appendChild(btnCopiar);
+
                     checkboxContainer.appendChild(div);
                     checkboxContainer.appendChild(document.createElement('hr'));
                 });
@@ -162,7 +188,8 @@
             if (modoDestacadoActivo) {
                 boton.textContent = '❌ Remove highlights';
             } else {
-                boton.textContent = `🌟 Highlight upcoming bosses. Now(${margenMin}min, ${margenMax}min)`;
+                boton.textContent = `🌟 Manual highlight upcoming bosses`;
+                boton.title = `Range: from now until ${margenMax} min`;
             }
         }
 
