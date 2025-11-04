@@ -133,7 +133,13 @@
                         
                         const texto = `${jefe.nombre}: ${jefe.puntoRuta || 'N/A'}`;
 
-                        navigator.clipboard.writeText(texto)
+                        const textArea = document.createElement("textarea");
+                        textArea.value = texto;
+                        document.body.appendChild(textArea);
+                        textArea.focus();
+                        textArea.select();
+
+                        /*navigator.clipboard.writeText(texto)
                             .then(() => {
                                 btnCopiar.textContent = '✅ Copied!';
                                 setTimeout(() => btnCopiar.textContent = '📋 Copy WP', 1500);
@@ -141,7 +147,21 @@
                             .catch(err => {
                                 console.error('Copy error:', err);
                                 alert('❌ Can not copy to clipboard.');
-                            });
+                            });*/
+                        
+                        try {
+                            const success = document.execCommand('copy');
+                            if (success) {
+                                btnCopiar.textContent = '✅ Copied!';
+                                setTimeout(() => btnCopiar.textContent = '📋 Copy WP', 1500);
+                            } else {
+                                alert('❌ Could not copy. Please press Ctrl+C to copy manually.');
+                            }
+                        } catch (err) {
+                            console.error('Copy error:', err);
+                            alert('❌ Copy not supported on this browser.');
+                        }
+                        document.body.removeChild(textArea);
                     });
 
                     div.appendChild(btnCopiar);
