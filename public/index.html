@@ -135,6 +135,11 @@
 
                         const textArea = document.createElement("textarea");
                         textArea.value = texto;
+                        // Para que no haga scroll hacia abajo del todo
+                        textArea.style.position = "fixed";
+                        textArea.style.opacity = "0";
+                        textArea.style.pointerEvents = "none";
+                        
                         document.body.appendChild(textArea);
                         textArea.focus();
                         textArea.select();
