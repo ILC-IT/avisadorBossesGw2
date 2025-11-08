@@ -120,7 +120,7 @@
                         checkboxes.push(input);
                     });
 
-                    // button for copy WP
+                    // Boton para copiar WP
                     const btnCopiar = document.createElement('button');
                     btnCopiar.type = 'button';
                     btnCopiar.style.cursor = 'pointer';
@@ -171,6 +171,22 @@
 
                     div.appendChild(btnCopiar);
 
+                    // Para borrar solo la seleccion de cada jefe
+                    const btnBorrarJefe = document.createElement('button');
+                    btnBorrarJefe.type = 'button';
+                    btnBorrarJefe.style.cursor = 'pointer';
+                    btnBorrarJefe.textContent = '🗑️ Clear this boss';
+                    btnBorrarJefe.addEventListener('click', () => {
+                        // Desmarcar todos los checkboxes de este jefe
+                        div.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+                        guardarSeleccion();
+                        alert(`✅ Cleared boss: ${jefe.nombre}`);
+                    });
+
+                    div.appendChild(document.createElement('br'));
+                    div.appendChild(btnBorrarJefe);
+
+
                     checkboxContainer.appendChild(div);
                     checkboxContainer.appendChild(document.createElement('hr'));
                 });
@@ -180,13 +196,17 @@
             }
         }
 
-        document.getElementById('btn-borrar').addEventListener('click', () => {
+        const btnBorrar = document.getElementById('btn-borrar');
+        btnBorrar.title = "Clear the current selection of all bosses";
+        btnBorrar.addEventListener('click', () => {
             checkboxes.forEach(cb => cb.checked = false);
             guardarSeleccion();
             alert("✅ Current selection has been cleared.");
         });
 
-        document.getElementById('btn-borrar-total').addEventListener('click', () => {
+        const btnBorrarTotal = document.getElementById('btn-borrar-total');
+        btnBorrarTotal.title = "Clear the current selection of all bosses and sets notifty minutes before = 10";
+        btnBorrarTotal.addEventListener('click', () => {
             checkboxes.forEach(cb => cb.checked = false);
             localStorage.removeItem('seleccionBossesHoras');
             localStorage.removeItem('minutosAviso');
