@@ -106,7 +106,8 @@ function programarLimpiezaDiaria() {
 
   setTimeout(() => {
     enviadosHoy.clear();
-    console.log('Limpieza diaria de enviadosHoy realizada (00:02 AM)');
+    const ahoraLimpieza = new Date();
+    console.log(`Limpieza diaria de enviadosHoy realizada a las: ${ahoraLimpieza.toLocaleString()}`);
     programarLimpiezaDiaria(); // Reprogramar para el siguiente dia
   }, msHastaLimpieza);
 }
