@@ -93,3 +93,10 @@ h2 {
     box-shadow: 0 0 4px rgba(0, 123, 255, 0.5);
     outline: none;
 }
+
+.boss-selected {
+    background-color: #3bb33b;
+    color: white;
+    padding: 2px 4px;
+    border-radius: 4px;
+}

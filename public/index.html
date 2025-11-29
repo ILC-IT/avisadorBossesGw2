@@ -29,6 +29,7 @@
         const checkboxContainer = document.getElementById('checkbox-container');
         const form = document.getElementById('form-jefes');
         const minutosAvisoInput = document.getElementById('minutosAviso');
+        minutosAvisoInput.addEventListener('change', guardarSeleccion); // Con esto ya autoguarda
         let checkboxes = [];
         let seleccionGuardada = {};
 
@@ -112,7 +113,11 @@
                             input.checked = true;
                         }
 
-                        input.addEventListener('change', guardarSeleccion); // con esto ya autoguarda
+                        input.addEventListener('change', () => { // con esto ya autoguarda
+                            guardarSeleccion();
+                            actualizarResaltadoBosses();
+                        });
+
                         label.appendChild(input);
                         label.append(` ${hora}`);
                         div.appendChild(label);
@@ -180,16 +185,19 @@
                         // Desmarcar todos los checkboxes de este jefe
                         div.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
                         guardarSeleccion();
+                        actualizarResaltadoBosses();
                         alert(`✅ Cleared boss: ${jefe.nombre}`);
                     });
 
                     div.appendChild(document.createElement('br'));
                     div.appendChild(btnBorrarJefe);
 
-
                     checkboxContainer.appendChild(div);
                     checkboxContainer.appendChild(document.createElement('hr'));
                 });
+
+                actualizarResaltadoBosses();
+
             } catch (error) {
                 checkboxContainer.innerHTML = '❌ Error loading bosses.';
                 console.error(error);
@@ -201,24 +209,17 @@
         btnBorrar.addEventListener('click', () => {
             checkboxes.forEach(cb => cb.checked = false);
             guardarSeleccion();
+            actualizarResaltadoBosses();
             alert("✅ Current selection has been cleared.");
         });
 
         const btnBorrarTotal = document.getElementById('btn-borrar-total');
-        btnBorrarTotal.title = "Clear the current selection of all bosses and sets notifty minutes before = 10";
+        btnBorrarTotal.title = "Clear the current selection of all bosses and sets notify before 10 minutes";
         btnBorrarTotal.addEventListener('click', () => {
             checkboxes.forEach(cb => cb.checked = false);
-            localStorage.removeItem('seleccionBossesHoras');
-            localStorage.removeItem('minutosAviso');
             minutosAvisoInput.value = 10; // valor por defecto
-            fetch('/guardar-config', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    seleccion: {},
-                    minutosAviso: 10
-                })
-            });
+            guardarSeleccion();
+            actualizarResaltadoBosses();
             alert("✅ ALL selections have been cleared.");
         });
 
@@ -307,9 +308,23 @@
             });
         }
 
+        function actualizarResaltadoBosses() {
+            document.querySelectorAll('.jefe-container').forEach(div => {
+                const titulo = div.querySelector('strong');
+                const algunMarcado = div.querySelector('input[type="checkbox"]:checked') !== null;
+
+                if (algunMarcado) {
+                    titulo.classList.add('boss-selected');
+                } else {
+                    titulo.classList.remove('boss-selected');
+                }
+            });
+        }
+
         form.addEventListener('submit', e => {
             e.preventDefault();
             guardarSeleccion();
+            actualizarResaltadoBosses();
             alert("✅ Selection saved.");
         });
 
