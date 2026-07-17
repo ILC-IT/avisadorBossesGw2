@@ -10,28 +10,44 @@
 
 <body>
     <h2>GW2 Select World Bosses and Timers</h2>
-    <form id="form-jefes">
+    <div>
         <div class="button-container">
+            <label for="filtroExpansion">Expansion:</label>
+            <select id="filtroExpansion">
+                <option value="all">All</option>
+                <option value="Core">Core</option>
+                <option value="IBS">IBS</option>
+                <option value="JW">JW</option>
+                <option value="VoE">VoE</option>
+            </select>
             <label for="minutosAviso">⏰ Notify before: </label>
             <span style="display: flex; align-items: center; gap: 4px;">
                 <input type="number" id="minutosAviso" min="1" max="59" value="10" />
                 <span>min</span>
             </span>
-            <button type="submit">💾 Save selection</button>
-            <button type="button" id="btn-borrar">🧹 Clear current selection</button>
-            <button type="button" id="btn-borrar-total">🗑️ Clear all</button>
+            <button type="button" id="btn-borrar">🧹 Clear all selected bosses</button>
+            <button type="button" id="btn-borrar-total">🗑️ Reset all settings</button>
             <button type="button" id="btn-destacar">🌟 Highlight upcoming bosses</button>
         </div>
         <div class="jefe-grid" id="checkbox-container">Loading bosses...</div><br />
-    </form>
+    </div>
 
     <script>
         const checkboxContainer = document.getElementById('checkbox-container');
-        const form = document.getElementById('form-jefes');
         const minutosAvisoInput = document.getElementById('minutosAviso');
-        minutosAvisoInput.addEventListener('change', guardarSeleccion); // Con esto ya autoguarda
+        const filtroExpansion = document.getElementById("filtroExpansion");
         let checkboxes = [];
         let seleccionGuardada = {};
+        minutosAvisoInput.addEventListener('change', () => {
+            let minutosAviso = parseInt(minutosAvisoInput.value, 10);
+            if (isNaN(minutosAviso) || minutosAviso < 1 || minutosAviso > 59) {
+                minutosAviso = 10;
+                minutosAvisoInput.value = minutosAviso;
+            }
+            localStorage.setItem('minutosAviso', minutosAviso);
+            guardarEnServidor(seleccionGuardada, minutosAviso);
+        });
+        filtroExpansion.addEventListener('change', cargarJefes);
 
         async function cargarConfiguracion() {
             try {
@@ -49,37 +65,27 @@
             }
         }
 
-        function guardarSeleccion() {
-            const seleccion = {};
-
-            document.querySelectorAll('.jefe-container').forEach(div => {
-                const jefe = div.dataset.jefe;
-                const horasSeleccionadas = [...div.querySelectorAll('input[type="checkbox"]:checked')].map(cb => cb.value);
-                if (horasSeleccionadas.length > 0) {
-                    seleccion[jefe] = horasSeleccionadas;
-                }
-            });
-
-            // Validacion de minutosAviso
-            let minutosAviso = parseInt(minutosAvisoInput.value, 10);
-            if (isNaN(minutosAviso) || minutosAviso < 1 || minutosAviso > 59) {
-                minutosAviso = 10; // valor por defecto
-                minutosAvisoInput.value = minutosAviso;
+        function actualizarSeleccionBoss(nombreBoss, hora, marcado) {
+            if (!seleccionGuardada[nombreBoss]) {
+                seleccionGuardada[nombreBoss] = [];
             }
+            if (marcado) {
+                if (!seleccionGuardada[nombreBoss].includes(hora)) {
+                    seleccionGuardada[nombreBoss].push(hora);
+                }
+            } else {
+                seleccionGuardada[nombreBoss] =
+                    seleccionGuardada[nombreBoss].filter(h => h !== hora);
 
-            // Guardar en localStorage
-            localStorage.setItem('minutosAviso', minutosAviso);
-            localStorage.setItem('seleccionBossesHoras', JSON.stringify(seleccion));
-
-            // Enviar al servidor
-            fetch('/guardar-config', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    seleccion,
-                    minutosAviso
-                })
-            });
+                if (seleccionGuardada[nombreBoss].length === 0) {
+                    delete seleccionGuardada[nombreBoss];
+                }
+            }
+            localStorage.setItem(
+                'seleccionBossesHoras',
+                JSON.stringify(seleccionGuardada)
+            );
+            guardarEnServidor(seleccionGuardada, parseInt(minutosAvisoInput.value, 10));
         }
 
         async function cargarJefes() {
@@ -87,8 +93,17 @@
                 const res = await fetch('/api/jefes');
                 const jefes = await res.json();
                 checkboxContainer.innerHTML = '';
+                checkboxes = [];
 
-                jefes.forEach(jefe => {
+                const expansionSeleccionada = filtroExpansion.value;
+
+                const jefesFiltrados = expansionSeleccionada === "all"
+                    ? jefes
+                    : jefes.filter(j =>
+                        j.expansiones.includes(expansionSeleccionada)
+                    );
+
+                jefesFiltrados.forEach(jefe => {
                     const div = document.createElement('div');
                     div.classList.add('jefe-container');
                     div.dataset.jefe = jefe.nombre;
@@ -113,8 +128,9 @@
                             input.checked = true;
                         }
 
-                        input.addEventListener('change', () => { // con esto ya autoguarda
-                            guardarSeleccion();
+                        input.addEventListener('change', () => {
+                            // guardarSeleccion(); // con esto ya autoguarda
+                            actualizarSeleccionBoss(jefe.nombre, hora, input.checked);
                             actualizarResaltadoBosses();
                         });
 
@@ -134,7 +150,7 @@
                         // Solo copiar las horas seleccionadas
                         //const horasSeleccionadas = [...div.querySelectorAll('input[type="checkbox"]:checked')]
                             //.map(cb => cb.value)
-                            //.join(', ') || 'Sin selección';
+                            //.join(', ') || 'Sin seleccion';
                         
                         const texto = `${jefe.nombre}: ${jefe.puntoRuta || 'N/A'}`;
 
@@ -184,7 +200,12 @@
                     btnBorrarJefe.addEventListener('click', () => {
                         // Desmarcar todos los checkboxes de este jefe
                         div.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
-                        guardarSeleccion();
+                        delete seleccionGuardada[jefe.nombre];
+                        localStorage.setItem(
+                            'seleccionBossesHoras',
+                            JSON.stringify(seleccionGuardada)
+                        );
+                        guardarEnServidor(seleccionGuardada, parseInt(minutosAvisoInput.value, 10));
                         actualizarResaltadoBosses();
                         alert(`✅ Cleared boss: ${jefe.nombre}`);
                     });
@@ -198,6 +219,12 @@
 
                 actualizarResaltadoBosses();
 
+                if (modoDestacadoActivo) {
+                    setTimeout(() => {
+                        aplicarDestacadoHoras();
+                    }, 0);
+                }
+
             } catch (error) {
                 checkboxContainer.innerHTML = '❌ Error loading bosses.';
                 console.error(error);
@@ -208,18 +235,29 @@
         btnBorrar.title = "Clear the current selection of all bosses";
         btnBorrar.addEventListener('click', () => {
             checkboxes.forEach(cb => cb.checked = false);
-            guardarSeleccion();
+            // Borrar todas las horas seleccionadas
+            seleccionGuardada = {};
+            localStorage.setItem('seleccionBossesHoras', JSON.stringify(seleccionGuardada));
+            guardarEnServidor(seleccionGuardada, parseInt(minutosAvisoInput.value, 10));
             actualizarResaltadoBosses();
-            alert("✅ Current selection has been cleared.");
+            alert("✅ Current selected bosses have been cleared.");
         });
 
         const btnBorrarTotal = document.getElementById('btn-borrar-total');
         btnBorrarTotal.title = "Clear the current selection of all bosses and sets notify before 10 minutes";
         btnBorrarTotal.addEventListener('click', () => {
             checkboxes.forEach(cb => cb.checked = false);
-            minutosAvisoInput.value = 10; // valor por defecto
-            guardarSeleccion();
+            // Borrar toda la seleccion y restaurar minutos
+            seleccionGuardada = {};
+            minutosAvisoInput.value = 10;
+            localStorage.setItem('seleccionBossesHoras', JSON.stringify(seleccionGuardada));
+            localStorage.setItem('minutosAviso', minutosAvisoInput.value);
+            guardarEnServidor(seleccionGuardada, parseInt(minutosAvisoInput.value, 10));
             actualizarResaltadoBosses();
+            // Si el modo highlight estaba activo, apagarlo
+            if (modoDestacadoActivo) {
+                quitarDestacadoHoras()
+            }
             alert("✅ ALL selections have been cleared.");
         });
 
@@ -255,25 +293,7 @@
         }
 
         // Para destacar horas
-        function destacarHorasProximas() {
-            const boton = document.getElementById('btn-destacar');
-
-            // Si ya esta activo, quitar resaltado
-            if (modoDestacadoActivo) {
-                document.querySelectorAll('label.destacado')
-                    .forEach(lbl => lbl.classList.remove('destacado'));
-                modoDestacadoActivo = false;
-                actualizarTextoBoton();
-                return;
-            }
-
-            // Activar modo resaltado
-            modoDestacadoActivo = true;
-            actualizarTextoBoton();
-
-            const ahora = new Date();
-            const minutosActuales = ahora.getHours() * 60 + ahora.getMinutes();
-
+        function aplicarDestacadoHoras() {
             // Quitar resaltados anteriores por si acaso
             document.querySelectorAll('label.destacado')
                 .forEach(lbl => lbl.classList.remove('destacado'));
@@ -281,14 +301,16 @@
             // Detectar si el margenMin es negativo (modo bidireccional)
             const modoBidireccional = margenMin < 0;
 
+            const ahora = new Date();
+            const minutosActuales = ahora.getHours() * 60 + ahora.getMinutes();
+
             // Revisar todas las horas (labels)
             document.querySelectorAll('.jefe-container label').forEach(label => {
-                const hora = label.textContent.trim();
-                const match = hora.match(/^(\d{2}):(\d{2})$/);
 
-                if (!match) return; // evitar que falle si el label tiene otro texto
+                const hora = label.textContent.trim().match(/^\d{2}:\d{2}$/);
+                if (!hora) return;
 
-                const [_, h, m] = match.map(Number);
+                const [h, m] = hora[0].split(':').map(Number);
                 const minutosEvento = h * 60 + m;
 
                 let diff = minutosEvento - minutosActuales;
@@ -308,12 +330,33 @@
             });
         }
 
+        function destacarHorasProximas() {
+            if (modoDestacadoActivo) {
+                document.querySelectorAll('label.destacado')
+                    .forEach(lbl => lbl.classList.remove('destacado'));
+                modoDestacadoActivo = false;
+
+            } else {
+                modoDestacadoActivo = true;
+                aplicarDestacadoHoras();
+            }
+            actualizarTextoBoton();
+        }
+
+        function quitarDestacadoHoras() {
+            document.querySelectorAll('label.destacado')
+                .forEach(lbl => lbl.classList.remove('destacado'));
+
+            modoDestacadoActivo = false;
+            actualizarTextoBoton();
+        }
+
         function actualizarResaltadoBosses() {
             document.querySelectorAll('.jefe-container').forEach(div => {
                 const titulo = div.querySelector('strong');
-                const algunMarcado = div.querySelector('input[type="checkbox"]:checked') !== null;
+                const nombre = div.dataset.jefe;
 
-                if (algunMarcado) {
+                if (seleccionGuardada[nombre]?.length > 0) {
                     titulo.classList.add('boss-selected');
                 } else {
                     titulo.classList.remove('boss-selected');
@@ -321,12 +364,16 @@
             });
         }
 
-        form.addEventListener('submit', e => {
-            e.preventDefault();
-            guardarSeleccion();
-            actualizarResaltadoBosses();
-            alert("✅ Selection saved.");
-        });
+        function guardarEnServidor(seleccion, minutosAviso) {
+            fetch('/guardar-config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    seleccion,
+                    minutosAviso
+                })
+            }).catch(err => console.error("Save error:", err));
+        }
 
         async function iniciarApp() {
             await cargarConfiguracion();
