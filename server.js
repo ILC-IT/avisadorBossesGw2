@@ -7,6 +7,7 @@ const fs = require('fs');
 const bosses = require('./bosses');
 const app = express();
 const { PORT, MINUTOSAVISO, REPETIR, NTFY_TOPIC } = require('./config');
+const seleccionPath = path.join(__dirname, 'seleccion.json');
 
 // Middleware
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -18,14 +19,9 @@ let minutosAviso = MINUTOSAVISO;
 const enviadosHoy = new Set();
 
 // Utilidades
-function getCurrentTime() {
-  const now = new Date();
-  return now.toTimeString().slice(0, 5); // "HH:MM"
-}
-
 function cargarSeleccionDesdeArchivo() {
   try {
-    const data = fs.readFileSync('seleccion.json', 'utf-8');
+    const data = fs.readFileSync(seleccionPath, 'utf-8');
     const parsed = JSON.parse(data);
     minutosAviso = parsed.minutosAviso ?? minutosAviso;
     return parsed.seleccion || {};
@@ -36,7 +32,7 @@ function cargarSeleccionDesdeArchivo() {
 
 function guardarSeleccionEnArchivo({ seleccion, minutosAviso }) {
   try {
-    fs.writeFileSync('seleccion.json', JSON.stringify({
+    fs.writeFileSync(seleccionPath, JSON.stringify({
       seleccion,
       minutosAviso
     }, null, 2));
