@@ -121,3 +121,27 @@ h2 {
     padding: 2px 4px;
     border-radius: 4px;
 }
+
+.buscador-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin: 15px auto 20px auto;
+    flex-wrap: wrap;
+    width: 100%;
+}
+
+.buscador-container input {
+    padding: 8px 12px;
+    width: 250px;
+    border: 1px solid #888;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.buscador-container button {
+    padding: 8px 12px;
+    cursor: pointer;
+    border-radius: 6px;
+}

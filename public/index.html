@@ -11,11 +11,17 @@
 <body>
     <h2>GW2 Select World Bosses and Timers</h2>
     <div>
+        <div class="buscador-container">
+            <label for="buscarBoss">🔎 Search boss:</label>
+            <input type="text" id="buscarBoss" placeholder="Type a boss name..." autocomplete="off" />
+            <button type="button" id="btn-limpiar-busqueda">✖ Clear</button>
+        </div>
         <div class="button-container">
             <label for="filtroExpansion">Expansion:</label>
             <select id="filtroExpansion">
                 <option value="all">All</option>
                 <option value="Core">Core</option>
+                <option value="fractalIncursion">Fractal Incursion</option>
                 <option value="IBS">IBS</option>
                 <option value="JW">JW</option>
                 <option value="VoE">VoE</option>
@@ -36,8 +42,10 @@
         const checkboxContainer = document.getElementById('checkbox-container');
         const minutosAvisoInput = document.getElementById('minutosAviso');
         const filtroExpansion = document.getElementById("filtroExpansion");
+        const buscarBossInput = document.getElementById('buscarBoss');
         let checkboxes = [];
         let seleccionGuardada = {};
+
         minutosAvisoInput.addEventListener('change', () => {
             let minutosAviso = parseInt(minutosAvisoInput.value, 10);
             if (isNaN(minutosAviso) || minutosAviso < 1 || minutosAviso > 59) {
@@ -47,7 +55,16 @@
             localStorage.setItem('minutosAviso', minutosAviso);
             guardarEnServidor(seleccionGuardada, minutosAviso);
         });
+
         filtroExpansion.addEventListener('change', cargarJefes);
+
+        buscarBossInput.addEventListener('input', cargarJefes);
+
+        document.getElementById('btn-limpiar-busqueda')
+            .addEventListener('click', () => {
+                buscarBossInput.value = '';
+                cargarJefes();
+            });
 
         async function cargarConfiguracion() {
             try {
@@ -96,12 +113,18 @@
                 checkboxes = [];
 
                 const expansionSeleccionada = filtroExpansion.value;
+                const textoBusqueda = buscarBossInput.value.trim().toLowerCase();
 
-                const jefesFiltrados = expansionSeleccionada === "all"
-                    ? jefes
-                    : jefes.filter(j =>
-                        j.expansiones.includes(expansionSeleccionada)
-                    );
+                const jefesFiltrados = jefes.filter(j => {
+
+                    const coincideExpansion = expansionSeleccionada === "all" ||
+                        j.expansiones.includes(expansionSeleccionada);
+
+                    const coincideNombre = j.nombre.toLowerCase()
+                        .includes(textoBusqueda);
+
+                    return coincideExpansion && coincideNombre;
+                });
 
                 jefesFiltrados.forEach(jefe => {
                     const div = document.createElement('div');
@@ -149,9 +172,9 @@
                     btnCopiar.addEventListener('click', () => {
                         // Solo copiar las horas seleccionadas
                         //const horasSeleccionadas = [...div.querySelectorAll('input[type="checkbox"]:checked')]
-                            //.map(cb => cb.value)
-                            //.join(', ') || 'Sin seleccion';
-                        
+                        //.map(cb => cb.value)
+                        //.join(', ') || 'Sin seleccion';
+
                         const texto = `${jefe.nombre}: ${jefe.puntoRuta || 'N/A'}`;
 
                         const textArea = document.createElement("textarea");
@@ -160,7 +183,7 @@
                         textArea.style.position = "fixed";
                         textArea.style.opacity = "0";
                         textArea.style.pointerEvents = "none";
-                        
+
                         document.body.appendChild(textArea);
                         textArea.focus();
                         textArea.select();
@@ -174,7 +197,7 @@
                                 console.error('Copy error:', err);
                                 alert('❌ Can not copy to clipboard.');
                             });*/
-                        
+
                         try {
                             const success = document.execCommand('copy');
                             if (success) {
@@ -214,7 +237,11 @@
                     div.appendChild(btnBorrarJefe);
 
                     checkboxContainer.appendChild(div);
-                    checkboxContainer.appendChild(document.createElement('hr'));
+                    // Linea vertical de separacion entre bosses
+                    if (jefesFiltrados.length > 1 &&
+                        jefesFiltrados.indexOf(jefe) < jefesFiltrados.length - 1) {
+                        checkboxContainer.appendChild(document.createElement('hr'));
+                    }
                 });
 
                 actualizarResaltadoBosses();
@@ -247,6 +274,9 @@
         btnBorrarTotal.title = "Clear the current selection of all bosses and sets notify before 10 minutes";
         btnBorrarTotal.addEventListener('click', () => {
             checkboxes.forEach(cb => cb.checked = false);
+            // Restaurar filtros por defecto
+            filtroExpansion.value = 'all';
+            buscarBossInput.value = '';
             // Borrar toda la seleccion y restaurar minutos
             seleccionGuardada = {};
             minutosAvisoInput.value = 10;
@@ -258,7 +288,8 @@
             if (modoDestacadoActivo) {
                 quitarDestacadoHoras()
             }
-            alert("✅ ALL selections have been cleared.");
+            cargarJefes();
+            alert("✅ ALL selections and settings have been cleared.");
         });
 
         let modoDestacadoActivo = false; // para saber si el modo highlight esta activo
@@ -382,7 +413,7 @@
 
         actualizarTextoBoton();
         iniciarApp();
-        
+
     </script>
 </body>
 
